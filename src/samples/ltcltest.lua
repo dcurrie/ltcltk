@@ -10,7 +10,7 @@
  - Released under MIT/X11 license. See file LICENSE for details.
 --]]
 
-require "ltcl"
+ltcl = require "ltcl"
 
 tcl = ltcl.new()
 

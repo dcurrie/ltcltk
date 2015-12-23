@@ -28,6 +28,20 @@
 #define LUA_INIT_LIB(funcs) \
 	luaL_newlib(L, funcs);
 
+#elif LUA_VERSION_NUM == 503
+
+#define luaL_reg      luaL_Reg
+
+#define lua_objlen    lua_rawlen
+
+#define luaL_checkint luaL_checkinteger
+
+#define luaL_optint   luaL_optinteger
+
+#define lua_equal(L,x,y) lua_compare(L,x,y,LUA_OPEQ)
+
+#define luaL_register(L,nm,tb) ((nm == NULL) ? NULL : lua_newtable(L), luaL_setfuncs(L, tb, 0))
+
 #else
 	#error lua version not supported.
 #endif
@@ -1223,9 +1237,15 @@ static int ltcl_callLuaFunc(void *LS, Tcl_Interp *tcli, int objc,  Tcl_Obj * CON
 	/* only enter here if there is actually a function to call */
 	if (objc >= 2) {
 		/* now fetch the metatable then the function table then our function there */
-		ltcl_pushTclObj(L, objv[1]);	/* 1 function name */
+#if LUA_VERSION_NUM < 503
+		ltcl_pushTclObj(L, objv[1]);     /* 1 function name */
 		lua_rawget(L, LUA_GLOBALSINDEX); /* 1 function */
-
+#else
+		lua_pushglobaltable(L);	         /* 1 get the globals */
+		ltcl_pushTclObj(L, objv[1]);     /* 2 function name */
+		lua_gettable(L, -2);             /* 2 function */
+		lua_remove(L, -2);               /* 1 remove globals from the stack */
+#endif
 		/* push arguments */
 		lua_checkstack(L, objc);
 		for (i = 2; i < objc; ++i)

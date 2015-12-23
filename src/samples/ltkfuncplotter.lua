@@ -8,7 +8,7 @@
  - This is not intended to be a first class function plotter app, just
  - to provide a starter on how to use ltk.
  -
- - Gunnar Zötl <gz@tset.de>, 2010.
+ - Gunnar Zï¿¶tl <gz@tset.de>, 2010.
  - Released under MIT/X11 license. See file LICENSE for details.
  -
  - 2011-10-12 adjusted for ltk version 2
@@ -47,9 +47,14 @@ for name, func in pairs(math) do fenv[name] = func end
 
 -- evaluate the function passed as a string for one value
 function evaluate(func, x)
-	local f = loadstring("return "..func)
 	fenv['x'] = x
-	setfenv(f, fenv)
+	local f
+	if loadstring then
+		f = loadstring("return "..func)
+		setfenv(f, fenv)
+	else
+		f = load("return "..func, nil, 't', fenv)
+	end
 	local ok, val = pcall(f)
 	if ok then return val else return ok, val end
 end

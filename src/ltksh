@@ -304,12 +304,19 @@ local function evaluate()
 
 	if cmd == 'exit' then ltk.exit() end
 	if is_complete_statement(cmd) then
-		local fn, err = loadstring(cmd)
-		-- in 5.2: load(cmd, nil, 't', ENVIRONMENT)
+		local fn, err
+		if loadstring then
+			-- not in 5.2
+			fn, err = loadstring(cmd)
+			if fn ~= nil then debug.setfenv(fn, ENVIRONMENT) end
+		else
+			-- in 5.2+
+			fn, err = load(cmd, nil, 't', ENVIRONMENT)
+		end
 		if err then
 			print('Error: ' .. err)
 		else
-			debug.setfenv(fn, ENVIRONMENT) -- not in 5.2
+			
 			local ok, val = pcall(fn)
 			if ok then
 				if val or doprint then print_value(val) end
@@ -334,10 +341,16 @@ end
 --
 local function do_load(fn)
 	local file = fn or ltk.getOpenFile{filetypes={luafiletype, allfiletype}}
-	local fn, err = loadfile(file)
-	-- in 5.2: loadfile(file, 'bt', ENVIRONMENT)
+	local fn, err
+	if loadstring then
+		-- not in 5.2
+		fn, err = loadfile(file)
+		if fn ~= nil then debug.setfenv(fn, ENVIRONMENT) end
+	else
+		-- in 5.2: 
+		fn, err = loadfile(file, 'bt', ENVIRONMENT)
+	end
 	if fn ~= nil then
-		debug.setfenv(fn, ENVIRONMENT) -- not in 5.2
 		local ok, err = fn()
 		if ok == nil and err ~= nil then
 			show_error(err)
