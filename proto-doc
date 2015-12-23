@@ -1,0 +1,1912 @@
+Still to do:
+- add something like Perl-TKs megawidgets
+- support lua 5.2 (test with 5.1, 5.2 and luajit)
+- write DOCs!
+
+ltk.var()
+ltk.var[name]
+
+methods for all widgets
+-----------------------
+
+	These methods are available for all widgets, but they may not always do
+	something. So if you want to use any of these with a widget, please check
+	its documentation for wether it supports this method or not.
+
+	bind(event, function)
+		the ltk.bind function as a method. For any widget w calling w:bind(...)
+		is the same as calling ltk.bind(w, ...)
+		http://www.tcl.tk/man/tcl8.5/TkCmd/bind.htm
+	bindtags(?tag?, ...)
+		the ltk.bindtags function as a method.
+		http://www.tcl.tk/man/tcl8.5/TkCmd/bindtags.htm
+	cget(option)
+		return the current value of the named widget option
+		http://www.tcl.tk/man/tcl8.5/TkCmd/ttk_widget.htm#M17
+	configure(?option?)
+	configure {option1=value1, option2=value2, ...}
+		if called without args, returns a list of config options like this:
+		{
+			{option1, default value, current value},
+			{option2, default value, current value},
+			...
+		}
+		if called with one arg, that must be a valid config option, and the
+		result is a table like one entry in the table of options above:
+			{option, default value, current value}
+		If called with a table, the widgets options are set from the name-value
+		pairs of the table.
+		http://www.tcl.tk/man/tcl8.5/TkCmd/ttk_widget.htm#M18
+	destroy()
+		destroys the widget
+		http://www.tcl.tk/man/tcl8.5/TkCmd/destroy.htm
+	grid()
+	grid{options}
+		The ltk.grid function as a method, used to add individual widgets to
+		the grid geometry manager. For any widget w calling w:grid() is the
+		same as calling ltk.grid(w, ...)
+		http://www.tcl.tk/man/tcl8.5/TkCmd/grid.htm
+		For more grid functionality see the grid family of functions below
+ 	instate(statespec)
+		Test the widget's state. Returns true if the widget state matches
+		statespec and false or nil otherwise. See "WIDGET STATES" below.
+		http://www.tcl.tk/man/tcl8.5/TkCmd/ttk_widget.htm#M20
+	methods()
+		return a list of methods the widget understands. This does not return
+		the standard options above, only widget specific methods.
+	options()
+		return a list of options the widget can be configured with
+	pack()
+	pack{options}
+		The ltk.pack function as a method, used to add individual widgets to
+		the pack geometry manager. For any widget w calling w:pack() is the
+		same as calling ltk.pack(w, ...)
+		http://www.tcl.tk/man/tcl8.5/TkCmd/pack.htm
+		For more pack functionality see the pack family of functions below.
+	place()
+	place{options}
+		The ltk.place function as a method, used to add individual widgets to
+		the place geometry manahg statusger. For any widget w calling w:place()
+		is the same as calling ltk.place(w, ...)
+		http://www.tcl.tk/man/tcl8.5/TkCmd/place.htm
+		For more place functionality see the place family of functions below.
+	state(?stateSpec?)
+		Modify or inquire widget state. If stateSpec is present, sets the
+		widget state: for each flag in stateSpec, sets the corresponding flag
+		or clears it if prefixed by an exclamation point.
+
+        Returns a table indicating which flags were changed:
+
+        changes = widget:state(spec)
+        widget:state(changes)
+
+        will restore widget to the original state.
+        
+        If stateSpec is not specified, returns a table of the 
+        currently-enabled state flags. See "WIDGET STATES" below.
+        http://www.tcl.tk/man/tcl8.5/TkCmd/ttk_widget.htm#M21
+	textcopy()
+		copies marked text from a widget to the system clipboard
+	textcut()
+		moves marked text from a widget to the system clipboard, deleting it
+		from the widget
+	textpaste()
+		pastes text from the system clipboard into the widget
+
+
+	WIDGET STATES
+		The widget state is a table of independent state flags. Not all widget 
+		support all flags. In addition to the Flags listet in the Tk
+		documentation, ltk also supports the 'normal' flag, which is
+		equivalent to '!disabled'.
+
+		A state specification or stateSpec is either a single state name or a
+		table of state names, optionally prefixed with an exclamation point (!) 
+		indicating that the flag is off.
+
+		http://www.tcl.tk/man/tcl8.5/TkCmd/ttk_widget.htm#M22
+
+Options
+-------
+
+	See http://www.tcl.tk/man/tcl8.5/TkCmd/options.htm for a list of standard
+	options supported by most widgets. Keep in mind that in ltk option names
+	are like the names in tk without the leading dash, so '-background' in tk
+	becomes 'background' in ltk.
+
+	Additional options are described here: http://www.tcl.tk/man/tcl8.5/TkCmd/ttk_widget.htm
+	These are for themed widgets.
+	
+	For options that take scripts as arguments, in ltk they take a function.
+	The arguments that are appended to the script in Tcl are passed as arguments
+	to the function in ltk.
+
+	TODO: scrolling and stuff
+
+widgets
+-------
+
+button
+	http://www.tcl.tk/man/tcl8.5/TkCmd/ttk_button.htm
+	Options
+		class, command, compound, cursor, default, image, padding, state, style,
+		takefocus, takefocus, text, textvariable, underline, width
+
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			instate
+			methods
+			options
+			pack
+			place
+			state
+		widget specific methods
+			identify(x, y)
+				Returns the name of the element under the point given by x and y, or an 
+				empty string if the point does not lie within any element. x and y are 
+				pixel coordinates relative to the widget.
+			invoke()
+				Invokes the command associated with the button. 
+
+canvas
+	Tk: canvas
+	Options
+		standard options
+			cursor
+			highlightbackground
+			highlightcolor
+			highlightthickness
+			insertbackground
+			insertborderwidth
+			insertofftime
+			insertontime
+			insertwidth
+			offset
+			relief
+			selectbackground
+			selectborderwidth
+			selectforeground
+			takefocus
+			xscrollcommand
+			yscrollcommand
+		widget specific options
+			closeenough
+				Specifies a floating-point value indicating how close the mouse
+				cursor must be to an item before it is considered to be
+				“inside” the item. Defaults to 1.0.
+
+			confine
+				Specifies a boolean value that indicates whether or not it
+				should be allowable to set the canvas's view outside the region
+				defined by the scrollRegion argument. Defaults to true, which
+				means that the view will be constrained within the scroll
+				region.
+
+			height
+				Specifies a desired window height that the canvas widget should
+				request from its geometry manager. The value may be specified
+				in any of the forms described in the COORDINATES section below.
+
+			scrollregion
+				Specifies a list with four coordinates describing the left,
+				top, right, and bottom coordinates of a rectangular region.
+				This region is used for scrolling purposes and is considered
+				to be the boundary of the information in the canvas. Each of
+				the coordinates may be specified in any of the forms given in
+				the COORDINATES section below.
+
+			state
+				Modifies the default state of the canvas where state may be set
+				to one of: normal, disabled, or hidden. Individual canvas
+				objects all have their own state option which may override the
+				default state. Many options can take separate specifications
+				such that the appearance of the item can be different in
+				different situations. The options that start with active
+				control the appearance when the mouse pointer is over it, while
+				the option starting with disabled controls the appearance when
+				the state is disabled. Canvas items which are disabled will not
+				react to canvas bindings.
+
+			width
+				Specifies a desired window width that the canvas widget should
+				request from its geometry manager. The value may be specified
+				in any of the forms described in the COORDINATES section below.
+
+			xscrollincrement
+				Specifies an increment for horizontal scrolling, in any of the
+				usual forms permitted for screen distances. If the value of
+				this option is greater than zero, the horizontal view in the
+				window will be constrained so that the canvas x coordinate at
+				the left edge of the window is always an even multiple of
+				xScrollIncrement; furthermore, the units for scrolling (e.g.,
+				the change in view when the left and right arrows of a
+				scrollbar are selected) will also be xScrollIncrement. If the
+				value of this option is less than or equal to zero, then
+				horizontal scrolling is unconstrained.
+
+			yscrollincrement
+				Specifies an increment for vertical scrolling, in any of the
+				usual forms permitted for screen distances. If the value of
+				this option is greater than zero, the vertical view in the
+				window will be constrained so that the canvas y coordinate at
+				the top edge of the window is always an even multiple of
+				yScrollIncrement; furthermore, the units for scrolling (e.g.,
+				the change in view when the top and bottom arrows of a
+				scrollbar are selected) will also be yScrollIncrement. If the
+				value of this option is less than or equal to zero, then
+				vertical scrolling is unconstrained. 
+
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			addtag(tag, searchspec, arg...)
+				pathName addtag tag searchSpec ?arg arg ...?
+				
+				Searchspec:
+					'above', tagOrId
+					'all'
+					'below', tagOrId
+					'closest', x, y [, halo] [, start]
+					'enclosed', x1, y1, x2, y2
+					'overlapping', x1, y1, x2, y2
+					'withtag', tagOrId
+			bbox(tagOrId, ...)
+				-> pathName bbox tagOrId ?tagOrId tagOrId ...?
+				returns a list of values
+			canvasx(screenx [, gridspacing])
+				-> pathName canvasx screeny ?gridspacing?
+			canvasy(screeny [, gridspacing])
+				-> pathName canvasy screeny ?gridspacing?
+			coords(tagOrId[, x0, y0, ...])
+				-> pathName coords tagOrId ?x0 y0 ...?
+			create_arc(x1, y1, y2, y2)
+			create_arc{x1, y1, y2, y2, option=value, ...}
+			create_arc(coordList)
+			create_arc{coordList, option=value, ...}
+				-> pathName create arc x1 y1 x2 y2 ?option value ...?
+				-> pathName create arc coordList ?option value ...?
+				coordList must be a table of 4 elements
+			create_bitmap(x, y)
+			create_bitmap{x, y, option=value, ...}
+			create_bitmap(coordList)
+			create_bitmap{coordList, option=value, ...}
+				-> pathName create bitmap x y ?option value option value ...?
+				-> pathName create bitmap x y ?option value option value ...?
+				coordList must be a table of 2 elements
+			create_image
+			create_line
+			create_oval
+			create_polygon
+			create_rectangle
+			create_text
+			create_window
+			dchars(tagOrId, first [,last])
+			delete
+			dtag
+			find
+			focus
+			gettags
+			icursor
+			index
+			insert
+			itembind(tagOrId [, sequence [, function]])
+				pathname bind tagOrId ?sequence? ?command?
+			itemcget
+			itemconfigure
+			lower
+			move
+			postscript
+			raise
+			scale
+			scan_dragto
+			scan_mark
+			select_adjust
+			select_clear
+			select_from
+			select_item
+			select_to
+			type
+			xview
+			xview_moveto
+			xview_scroll
+			yview
+			yview_moveto
+			yview_scroll
+
+checkbutton
+	Tk: ttk::checkbutton
+	Options
+		standard options
+			class
+			compound
+			cursor
+			image
+			padding
+			style
+			takefocus
+			text
+			textvariable
+			underline
+			width
+		widget specific options
+			command
+				A function to execute whenever the widget is invoked. 
+			offvalue
+				The value to store in the associated -variable when the widget is 
+				deselected. Defaults to 0.
+			onvalue
+				The value to store in the associated -variable when the widget is 
+				selected. Defaults to 1.
+			variable
+				The name of a ltk.var variable whose value is linked to the widget. 
+				Defaults to the widget pathname if not specified.
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			invoke
+				Toggles between the selected and deselected states and evaluates the 
+				associated -command. If the widget is currently selected, sets the 
+				-variable to the -offvalue and deselects the widget; otherwise, sets the 
+				-variable to the -onvalue Returns the result of the -command.
+
+combobox
+	Tk: combobox
+	Options
+		values
+		class
+		exportselection
+		xscrollcommand
+		validatecommand
+		textvariable
+		takefocus
+		invalidcommand
+		postcommand
+		justify
+		validate
+		width
+		font
+		style
+		cursor
+		height
+		background
+		foreground
+		show
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			bbox
+			current
+			delete
+			get
+			icursor
+			index
+			insert
+			selection_clear
+			selection_present
+			selection_range
+			set
+			xview
+
+entry
+	Tk: ttk::entry
+	Options
+		class
+		exportselection
+		xscrollcommand
+		validatecommand
+		textvariable
+		takefocus
+		invalidcommand
+		justify
+		validate
+		width
+		show
+		font
+		style
+		foreground
+		cursor
+		background
+		state
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			bbox
+			delete
+			get
+			icursor
+			index
+			insert
+			selection_clear
+			selection_present
+			selection_range
+			set
+			validate
+			xview
+
+frame
+	Tk: ttk::frame
+	Options
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+
+label
+	Tk: ttk::label
+	Options
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+
+labelframe
+	Tk: ttk::labelframe
+	Options
+		labelanchor
+		relief
+		text
+		underline
+		width
+		labelwidget
+		class
+		style
+		cursor
+		height
+		padding
+		takefocus
+		borderwidth
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+
+listbox
+	Tk: listbox
+	Options
+		selectbackground
+		relief
+		selectmode
+		exportselection
+		xscrollcommand
+		disabledforeground
+		setgrid
+		background
+		foreground
+		selectborderwidth
+		activestyle
+		yscrollcommand
+		takefocus
+		borderwidth
+		highlightcolor
+		width
+		state
+		font
+		selectforeground
+		cursor
+		height
+		highlightthickness
+		highlightbackground
+		listvariable
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			activate
+			bbox
+			curselection
+			delete
+			get
+			index
+			insert
+			itemcget
+			itemconfigure
+			nearest
+			scan
+			see
+			selection
+			size
+			xview
+			yview
+
+menu
+	Tk: menu
+	Options
+		relief
+		activebackground
+		disabledforeground
+		background
+		tearoffcommand
+		postcommand
+		selectcolor
+		borderwidth
+		tearoff
+		type
+		font
+		title
+		cursor
+		foreground
+		activeborderwidth
+		activeforeground
+		takefocus
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			activate
+			add
+			clone
+			delete
+			entrycget
+			entryconfigure
+			index
+			insert
+			invoke
+			post
+			postcascade
+			type
+			unpost
+			xposition
+			yposition
+
+menubutton
+	Tk: ttk::menubutton
+	Options
+		direction
+		class
+		style
+		text
+		underline
+		width
+		state
+		image
+		menu
+		cursor
+		textvariable
+		takefocus
+		padding
+		compound
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+
+message
+	Tk: message
+	Options
+		relief
+		padx
+		cursor
+		pady
+		highlightbackground
+		anchor
+		background
+		aspect
+		justify
+		borderwidth
+		highlightcolor
+		width
+		font
+		textvariable
+		foreground
+		text
+		takefocus
+		highlightthickness
+	Methods:
+		standard methods (?)
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+
+notebook
+	Tk: ttk::notebook
+	Options
+		class
+		style
+		takefocus
+		height
+		padding
+		cursor
+		width
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			add
+			forget
+			hide
+			index
+			insert
+			select
+			tab
+			tabs
+
+panedwindow
+	Tk: ttk::panedwindow
+	Options
+		orient
+		style
+		class
+		height
+		takefocus
+		cursor
+		width
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			add
+			forget
+			insert
+			pane
+			panes
+			sashpos
+
+progressbar
+	Tk: ttk::progressbar
+	Options
+		orient
+		maximum
+		phase
+		class
+		cursor
+		style
+		takefocus
+		value
+		length
+		mode
+		variable
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			start
+			step
+			stop
+
+radiobutton
+	Tk: ttk::radiobutton
+	Options
+		class
+		compound
+		cursor
+		padding
+		text
+		underline
+		width
+		state
+		image
+		style
+		takefocus
+		command
+		variable
+		value
+		textvariable
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			invoke
+
+scale
+	Tk: ttk::scale
+	Options
+		orient
+		to
+		class
+		cursor
+		length
+		style
+		from
+		value
+		takefocus
+		command
+		variable
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			coords
+			get
+			set
+
+scrollbar
+	Tk: ttk::scrollbar
+	Options
+		orient
+		style
+		command
+		takefocus
+		cursor
+		class
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			delta
+			fraction
+			get
+			set
+
+separator
+	Tk: ttk::separator
+	Options
+		orient
+		style
+		takefocus
+		cursor
+		class
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+
+sizegrip
+	Tk: ttk::sizegrip
+	Options
+		class
+		takefocus
+		cursor
+		style
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+
+spinbox
+	Tk: spinbox
+	Options
+		selectbackground
+		values
+		insertontime
+		cursor
+		insertwidth
+		validatecommand
+		command
+		format
+		invalidcommand
+		insertofftime
+		buttoncursor
+		buttonuprelief
+		wrap
+		selectforeground
+		insertbackground
+		state
+		font
+		insertborderwidth
+		from
+		buttondownrelief
+		disabledbackground
+		relief
+		activebackground
+		xscrollcommand
+		repeatinterval
+		disabledforeground
+		textvariable
+		takefocus
+		to
+		selectborderwidth
+		justify
+		validate
+		buttonbackground
+		increment
+		highlightcolor
+		width
+		repeatdelay
+		exportselection
+		readonlybackground
+		highlightbackground
+		foreground
+		background
+		borderwidth
+		highlightthickness
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			bbox
+			delete
+			get
+			icursor
+			index
+			insert
+			invoke
+			scan
+			selection
+			set
+			validate
+			xview
+
+text
+	Tk: text
+	Options
+		selectbackground
+		autoseparators
+		insertontime
+		padx
+		cursor
+		pady
+		spacing	
+		setgrid
+		background
+		insertofftime
+		wrap
+		selectforeground
+		insertbackground
+		state
+		font
+		insertborderwidth
+		height
+		relief
+		startline
+		xscrollcommand
+		spacing	
+		highlightbackground
+		takefocus
+		blockcursor
+		yscrollcommand
+		selectborderwidth
+		tabstyle
+		undo
+		inactiveselectbackground
+		borderwidth
+		highlightcolor
+		width
+		maxundo
+		exportselection
+		tabs
+		insertwidth
+		foreground
+		spacing	
+		endline
+		highlightthickness
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			bbox
+			compare
+			count(start, end [, {options}])
+			debug
+			delete
+			dlineinfo
+			dump(start [, end] [, {options}])
+			edit_modified
+			edit_redo
+			edit_reset
+			edit_separator
+			edit_undo
+			get
+			get_displaychars
+			getcursor
+			image_cget
+			image_configure
+			image_create
+			image_names
+			index
+			insert
+			mark_names
+			mark_next
+			mark_previous
+			mark_set
+			mark_unset
+			peer_create
+			peer_names
+			replace
+			scan_mark
+			scan_dragto
+			search(pattern, start [, end] [, {options}])
+			see
+			setcursor
+			tag_add
+			tag_bind
+			tag_cget
+			tag_configure
+			tag_delete
+			tag_lower
+			tag_names
+			tag_nextrange
+			tag_prevrange
+			tag_raise
+			tag_ranges
+			tag_remove
+			window_cget
+			window_configure
+			window_create
+			window_names
+			xview
+			xview_moveto
+			xview_scroll
+			yview
+			yview_moveto
+			yview_scroll
+			yview_number
+
+toplevel
+	Tk: toplevel
+	Options
+		relief
+		class
+		cursor
+		pady
+		highlightbackground
+		background
+		container
+		visual
+		borderwidth
+		highlightcolor
+		width
+		takefocus
+		colormap
+		menu
+		padx
+		height
+		highlightthickness
+		screen
+		use
+	Methods:
+		standard methods(?)
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			aspect(?minNumer, minDenom, maxNumer, maxDenom?)
+				ltk.wm.aspect(...)
+			deiconify()
+				ltk.wm.deiconify(...)
+			focusmodel([model])
+				ltk.wm.focusmodel(...)
+			geometry(?geom?)
+				ltk.wm.geometry(...)
+			group()
+			iconbitmap()
+			iconify()
+				ltk.wm.iconify(...)
+			iconmask
+			iconname
+			iconphoto
+			iconposition
+			iconwindow
+			maxsize(?width, height?)
+				ltk.wm.maxsize(...)
+			minsize(?width, height?)
+				ltk.wm.minsize(...)
+			resizable(?width, height?)
+				ltk.wm.resizable(...)
+			stackorder
+			state
+			title(?title?)
+				ltk.wm.title(...)
+			transient
+
+treeview
+	Tk: ttk::treeview
+	Options
+		columns
+		selectmode
+		class
+		cursor
+		xscrollcommand
+		show
+		style
+		yscrollcommand
+		height
+		takefocus
+		padding
+		displaycolumns
+	Methods:
+		standard methods
+			bind
+			bindtags
+			cget
+			configure
+			destroy
+			grid
+			identify
+			instate
+			methods
+			options
+			pack
+			place
+			state
+			textcopy
+			textcut
+			textpaste
+		widget specific methods
+			box
+			children
+			column
+			delete
+			detach
+			drag
+			exists
+			focus
+			heading
+			index
+			instate
+			insert
+			item
+			move
+			next
+			parent
+			prev
+			see
+			selection
+			set
+			state
+			tag
+			xview
+			yview
+
+images
+------
+
+bitmap
+	Options
+		maskfile
+		maskdata
+		foreground
+		file
+		data
+		background
+	Methods:
+		delete() = image delete img
+		getdata()
+		height() = image height img
+		inuse() = img inuse img
+		type() = image type img
+		width() = image width img
+
+photo
+	Options
+		palette
+		format
+		gamma
+		height
+		file
+		data
+		width
+	Methods:
+		blank
+		copy
+		delete() = image delete img
+		getdata() = img data 
+		get
+		height() = image height img
+		inuse() = image inuse img
+		put
+		read
+		redither
+		set
+		type() = image type img
+		transparency
+		width() = image width img
+		write
+
+functions
+---------
+
+addtkwidget(?)
+
+after(ms [, func])	= after ms [script]
+after.cancel(id) = after cancel id
+after.idle(func) = after idle script
+after.info([id]) = after info id
+	http://www.tcl.tk/man/tcl8.5/TclCmd/after.htm
+
+bell()
+	sounds the bell
+
+bind(widget [, sequence] [, '+'] [, func])
+	http://www.tcl.tk/man/tcl8.5/TkCmd/bind.htm
+
+bindtags(widget [, {taglist})
+	http://www.tcl.tk/man/tcl8.5/TkCmd/bindtags.htm
+
+chooseColor([{options}])
+	http://www.tcl.tk/man/tcl8.5/TkCmd/chooseColor.htm
+
+chooseDirectory([{options}])
+	http://www.tcl.tk/man/tcl8.5/TkCmd/chooseDirectory.htm
+
+clipboard.get([{opts}])
+clipboard.clear([{opts}])
+clipboard.append(data [, {opts}])
+	http://www.tcl.tk/man/tcl8.5/TkCmd/clipboard.htm
+
+console.eval(script)
+console.hide()
+console.show()
+console.title([string])
+	http://www.tcl.tk/man/tcl8.5/TkCmd/console.htm
+	There is no consoleinterp. Not sure if console is even needed or sensible.
+	You probably should not use this.
+
+dialog(title, text, bitmap, default, string, ...)
+	http://www.tcl.tk/man/tcl8.5/TkCmd/dialog.htm
+	The window id is generated by ltk and returned from the function.
+	Example:
+		reply = ltk.dialog('Question', 'Are you sure?', nil, 1, 'Yes', 'No', 'Not sure')
+
+event.add('<<virtual>>', sequence, ..)
+event.delete('<<virtual>>')
+event.generate(window, event [, {options}])
+event.info(['<<virtual>>'])
+	http://www.tcl.tk/man/tcl8.5/TkCmd/event.htm
+
+exit
+	closes all windows and exits the interpreter. Also, this is called when
+	destroy is called on ltk.stdwin
+
+focus(widget [, {options}])
+	http://www.tcl.tk/man/tcl8.5/TkCmd/focus.htm
+
+focusFollowsMouse()
+focusNext(window)
+focusPrev(window)
+	http://www.tcl.tk/man/tcl8.5/TkCmd/focusNext.htm
+
+font
+	actual
+	configure
+	create
+	delete
+	families
+	measure
+	metrics
+	names
+
+fromutf8
+
+getOpenFile
+
+getSaveFile
+
+grab
+	current
+	release
+	set
+	status
+
+grid [0] = true
+	anchor
+	bbox
+	columnconfigure
+	configure
+	forget
+	info
+	location
+	propagate
+	rowconfigure
+	remove
+	size
+	slaves
+
+image
+	height
+	inuse
+	names
+	type
+	types
+	width
+	create_bitmap
+	create_photo
+	create (= create_photo)
+	delete
+
+iswidget
+
+lower
+
+raise
+
+mainloop
+
+menuSetFocus
+
+messageBox
+
+option
+	add
+	clear
+	get
+	readfile
+
+optionMenu 
+
+pack [0] = true
+	configure
+	forget
+	info
+	propagate
+	slaves
+
+place [0] = true
+	configure
+	forget
+	info
+	slaves
+
+popup
+
+require
+
+selection
+	clear
+	get
+	handle
+	own
+
+setPalette
+
+style
+	configure
+	map
+	lookup
+	layout
+	theme
+		create
+		settings
+		names
+		use
+	element
+		create
+		names
+		options
+
+tk
+	appname
+	scaling
+	inactive
+	useinputmethods
+	windowingsystem
+	caret.window
+
+toutf8
+
+update
+
+vals
+
+wait
+	variable
+	visibility
+	window
+
+widget
+	[0] = true
+	id
+	type
+
+winfo
+	atom
+	atomname
+	cells*
+	children*
+	class*
+	colormapfull*
+	containing
+	depth*
+	exists*
+	fpixels*
+	geometry*
+	height*
+	id
+	interps
+	ismapped*
+	manager*
+	name
+	parent*
+	pathname
+	pixels*
+	pointerx*
+	pointerxy*
+	pointery*
+	reqheight*
+	reqwidth*
+	rgb*
+	rootx*
+	rooty*
+	screen*
+	screencells*
+	screendepth*
+	screenheight*
+	screenmmheight*
+	screenmmwidth*
+	screenvisual*
+	screenwidth*
+	server*
+	toplevel*
+	viewable*
+	visual*
+	visualid
+	visualsavailable*
+	vrootheight*
+	vrootwidth*
+	vrootx*
+	vrooty*
+	width*
+	x*
+	y*
+
+wm
+	aspect*
+	attributes
+	client
+	colormapwindows
+	command
+	deiconify*
+	focusmodel*
+	forget
+	frame
+	geometry*
+	grid
+	group*
+	iconbitmap*
+	iconify*
+	iconmask*
+	iconname*
+	iconphoto*
+	iconposition*
+	iconwindow*
+	manage
+	maxsize*
+	minsize*
+	overrideredirect
+	positionfrom
+	protocol
+	resizable*
+	sizefrom
+	stackorder*
+	state*
+	title*
+	transient*
+	withdraw
+
+
+
+Stuff
+-----
+
+	forms acceptable to Tk_GetPixels
+	a.k.a. standard forms for screen distances
+
+		<none>
+			The number specifies a distance in pixels.
+
+		c
+			The number specifies a distance in centimeters on the screen.
+
+		i
+			The number specifies a distance in inches on the screen.
+
+		m
+			The number specifies a distance in millimeters on the screen.
+
+		p
+			The number specifies a distance in printer's points (1/72 inch) on the screen. 
+
+
+	forms acceptable to Tk_GetBitmap
+
+		@fileName
+			FileName must be the name of a file containing a bitmap description in the standard X11 or X10 format.
+
+		name
+			Name must be the name of a bitmap defined previously with a call to Tk_DefineBitmap. The following names are pre-defined by Tk:
+
+			error
+				The international “don't” symbol: a circle with a diagonal line across it.
+
+			gray75
+				75% gray: a checkerboard pattern where three out of four bits are on.
+
+			gray50
+				50% gray: a checkerboard pattern where every other bit is on.
+
+			gray25
+				25% gray: a checkerboard pattern where one out of every four bits is on.
+
+			gray12
+				12.5% gray: a pattern where one-eighth of the bits are on, consisting of every fourth pixel in every other row.
+
+			hourglass
+				An hourglass symbol.
+
+			info
+				A large letter “i”.
+
+			questhead
+				The silhouette of a human head, with a question mark in it.
+
+			question
+				A large question-mark.
+
+			warning
+				A large exclamation point.
+
+				In addition, the following pre-defined names are available only on the Macintosh platform:
+
+				document
+					A generic document.
+
+				stationery
+					Document stationery.
+
+				edition
+					The edition symbol.
+
+				application
+					Generic application icon.
+
+				accessory
+					A desk accessory.
+
+				folder
+					Generic folder icon.
+
+				pfolder
+					A locked folder.
+
+				trash
+					A trash can.
+
+				floppy
+					A floppy disk.
+
+				ramdisk
+					A floppy disk with chip.
+
+				cdrom
+					A cd disk icon.
+
+				preferences
+					A folder with prefs symbol.
+
+				querydoc
+					A database document icon.
+
+				stop
+					A stop sign.
+
+				note
+					A face with balloon words.
+
+				caution
+					A triangle with an exclamation point. 
+
+	forms acceptable to Tk_GetCursor
+
+		name [fgColor [bgColor]]
+			Name is the name of a cursor in the standard X cursor cursor, i.e.,
+			any of the names defined in cursorcursor.h, without the XC_. Some
+			example values are X_cursor, hand2, or left_ptr. Appendix B of
+			“The X Window System” by Scheifler & Gettys has illustrations showing
+			what each of these cursors looks like. If fgColor and bgColor are both
+			specified, they give the foreground and background colors to use for
+			the cursor (any of the <forms acceptable to Tk_GetColor> may be used).
+			If only fgColor is specified, then there will be no background color:
+			the background will be transparent. If no colors are specified, then
+			the cursor will use black for its foreground color and white for its
+			background color.
+
+			The Macintosh version of Tk supports all of the X cursors and will also
+			accept any of the standard Mac cursors including ibeam, crosshair,
+			watch, plus, and arrow. In addition, Tk will load Macintosh cursor
+			resources of the types crsr (color) and CURS (black and white) by the
+			name of the resource. The application and all its open dynamic library's
+			resource files will be searched for the named cursor. If there are conflicts
+			color cursors will always be loaded in preference to black and white cursors.
+
+		@sourceName maskName fgColor bgColor
+			In this form, sourceName and maskName are the names of files describing
+			cursors for the cursor's source bits and mask. Each file must be in
+			standard X11 or X10 cursor format. FgColor and bgColor indicate the
+			colors to use for the cursor, in any of the <forms acceptable to Tk_GetColor>.
+			This form of the command will not work on Macintosh or Windows computers.
+
+		@sourceName fgColor
+			This form is similar to the one above, except that the source is used as
+			mask also. This means that the cursor's background is transparent. This
+			form of the command will not work on Macintosh or Windows computers.
+
+		@sourceName
+			This form only works on Windows, and will load a Windows system cursor
+			(.ani or .cur) from the file specified in sourceName. 
+
+	forms acceptable to Tk_GetColor
+
+		colorname
+			Any of the valid textual names for a color defined in the server's color
+			database file, such as red or PeachPuff.
+
+			#RGB
+
+			#RRGGBB
+
+			#RRRGGGBBB
+
+			#RRRRGGGGBBBB
+				A numeric specification of the red, green, and blue intensities to use
+				to display the color. Each R, G, or B represents a single hexadecimal
+				digit. The four forms permit colors to be specified with 4-bit, 8-bit,
+				12-bit or 16-bit values. When fewer than 16 bits are provided for each
+				color, they represent the most significant bits of the color. For example,
+				#3a7 is the same as #3000a0007000. 
+
+	forms accepted by Tcl_GetBoolean
+	
+		0, false, 'no', or 'off' are false values,
+		1, true, 'yes', or 'on' are true values
+
+	forms acceptable to TK_GetDash
+
+		These procedure parses the string and fills in the result in the
+		Tk_Dash structure. The string can be a list of integers or a character
+		string containing only “.,-_” or spaces. If all goes well, TCL_OK is
+		returned. If string does not have the proper syntax then TCL_ERROR is
+		returned, an error message is left in the interpreter's result, and
+		nothing is stored at *dashPtr.
+
+		The first possible syntax is a list of integers. Each element
+		represents the number of pixels of a line segment. Only the odd
+		segments are drawn using the “outline” color. The other segments are
+		drawn transparent.
+
+		The second possible syntax is a character list containing only 5
+		possible characters “.,-_ ”. The space can be used to enlarge the
+		space between other line elements, and can not occur as the first
+		position in the string. Some examples:
+
+			-dash .     = -dash {2 4}
+			-dash -     = -dash {6 4}
+			-dash -.    = -dash {6 4 2 4}
+			-dash -..   = -dash {6 4 2 4 2 4}
+			-dash {. }  = -dash {2 8}
+			-dash ,     = -dash {4 4}
+
+		The main difference of this syntax with the previous is that it is
+		shape-conserving. This means that all values in the dash list will be
+		multiplied by the line width before display. This assures that “.” will
+		always be displayed as a dot and “-” always as a dash regardless of the
+		line width.
+
+		On systems where only a limited set of dash patterns, the dash pattern
+		will be displayed as the most close dash pattern that is available. For
+		example, on Windows only the first 4 of the above examples are
+		available. The last 2 examples will be displayed identically as the
+		first one. 
+
+Fonts
+-----

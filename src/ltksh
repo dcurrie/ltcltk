@@ -1,0 +1,668 @@
+#!/usr/bin/env lua
+
+--[[
+ - ltksh.lua
+ -
+ - a simple ltk shell a la wish, allows you to interactively experiment with ltk
+ -
+ - Gunnar Zötl <gz@tset.de>, 2011, 2012.
+ - Released under MIT/X11 license. See file LICENSE for details.
+--]]
+
+ltk = require "ltk"
+cprint = print
+
+-- check wether we have the right version of ltk to run with
+if tonumber(ltk._VERSION) < 1.9 then
+	ltk.messageBox { title='ltk version error', icon='error', message='ltksh needs ltk version 2 or newer to run.' }
+	ltk.exit()
+end
+
+local ENVIRONMENT = setmetatable({}, {__index = _G})
+
+local VERSION='0.8'
+
+local console, text
+local luafiletype = {'Lua file', {'.lua'}}
+local txtfiletype = {'Text file', {'.txt'}}
+local allfiletype = {'All Files', {'*'}}
+
+local linestart_pos = '0.0'
+
+-- command history handling
+local history = {}
+local hist_current = 0
+
+local function history_add(l)
+	hist_current = #history
+	hist_current = hist_current + 1
+	history[hist_current] = l
+end
+
+local function history_prev()
+	if hist_current < 1 then return end
+	local res = history[hist_current][1]
+	if hist_current > 1 then
+		hist_current = hist_current - 1
+	end
+	return res
+end
+
+local function history_next()
+	if hist_current < #history then
+		hist_current = hist_current + 1
+		return history[hist_current][1]
+	end
+	return nil
+end
+
+-- output functions
+local function prompt(p)
+	p = p or '> '
+	text:setcursor('end')
+	text:insert('insert', p)
+	linestart_pos = text:getcursor()
+end
+
+function print(...)
+	local nargs = select('#', ...)
+	local i
+	for i=1, nargs do
+		text:insert('insert', tostring(select(i, ...)))
+		if i < nargs then text:insert('insert', "\t") end
+	end
+	text:insert('insert', "\n")
+	linestart_pos = text:getcursor()
+end
+
+function notify(msg)
+	text:setcursor('end')
+	print("\n"..msg)
+end
+
+function show_error(msg)
+	ltk.messageBox { message=msg, title="Error", icon="error" }
+end
+
+function query_yesno(msg, title)
+	title = title or 'Query'
+	return ltk.messageBox { message=msg, ['type'] = 'yesno', ['title']=title, icon="question" }
+end
+
+-- the following lua lexer and "parser" (if you want to call it that) serve only
+-- the purpose of making an educated guess wether a statement is complete or just
+-- invalid.
+--
+
+-- Very Simple Lua Lexer
+--
+local s_find = string.find
+local s_match = string.match
+local s_sub = string.sub
+local function vsll_match_long(str, i)
+	local s, e, m = s_find(str, '^%[(=*)%[', i)
+	local _
+	if s and e then
+		_, e = s_find(str, '^.-]'..m..']', e+1)
+		if e then
+			return s, e
+		else
+			return nil, 'incomplete'
+		end
+	end
+	return nil, 'invalid'
+end
+
+-- recognizes the next token from the string starting at index i, and returns
+-- it and the index after it
+-- returns nil, 'invalid' if no valid token could be found
+-- returns nil, 'incomplete' if an incomplete token was found (eg unterminated
+-- multiline string)
+--
+local function vsll(str, i)
+	local t, _
+	local s, e = s_find(str, '^[%s%c\r\n]+', i)
+	if s and e then i = e + 1 end
+	
+	local c = s_sub(str, i, i)
+
+	-- empty
+	if str == "" or #str < i then return '<eof>', nil end
+
+	-- comment
+	if s_sub(str, i, i+1) == '--' then
+		-- short comment
+		if s_sub(str, i+2, i+2) ~= '[' then
+			s, e = s_find(str, '^--.-\n', i)
+			if e then
+				return vsll(str, e+1)
+			else
+				return nil, nil
+			end
+		-- long comment
+		else
+			i = i + 2
+			_, e = vsll_match_long(str, i)
+			if _ then
+				return vsll(str, e+1)
+			else
+				return _, e
+			end
+		end
+	end
+
+	-- hex number
+	s, e = s_find(str, '^-?0[xX][%da-fA-F]+', i)
+	if s == i and e then return s_sub(str, s, e), e+1 end
+	
+	-- number
+	s, e = s_find(str, '^-?%d+%.?%d*', i)
+	if s and e then
+		local n = s_sub(str, e+1, e+1)
+		if n == 'e' or n == 'E' then
+			_, e = s_find(str, '%d+', e+1)
+		end
+		if s and e then return s_sub(str, s, e), e+1 end
+	end
+
+	-- identifier
+	s, e = s_find(str, '^[_%a][_%a%d]*', i)
+	if s == i and e then return s_sub(str, s, e), e+1 end
+
+	-- ., .., ...
+	s, e = s_find(str, '^%.+', i)
+	if s and e then
+		if e - s < 3 then
+			return s_sub(str, s, e), e+1
+		end
+	end
+
+	-- ==, ~=, <=, >=
+	s, e = s_find(str, '^[~=<>]=', i)
+	if s and e then return s_sub(str, s, e), e+1 end
+
+	-- simple single or double quoted string
+	if c == '"' or c == "'" then
+		local p1 = '^%'..c..'[^'..c..']*%'..c
+		local p2 = '^[^'..c..']*%'..c
+		s, e = s_find(str, p1, i)
+		while e and s_sub(str, e-1, e-1) == '\\' do
+			_, e = s_find(str, p2, e+1)
+		end
+		if s and e then return s_sub(str, s, e), e+1 end
+	end
+
+	-- long string
+	if s_match(str, '%[[%[=]', i) then
+		s, e = vsll_match_long(str, i)
+		if s and e then return s_sub(str, s, e), e+1 end
+	end
+
+	-- single char tokens
+	if s_match(c, '[%[%]%(%)%{%}%+%-%*%/%%%^#<>=;:,]') then
+		return c, i+1
+	end
+
+	return nil, 'invalid'
+end
+
+-- end Very Simple Lua Lexer
+
+-- Extremely Simple Lua Parser, just guesses wether a statement is complete
+--
+local do_expect = {
+	['('] = ')',
+	['['] = ']',
+	['{'] = '}',
+	['function'] = 'end',
+	['for'] = 'end',
+	['while'] = 'end',
+	['if'] = 'end',
+	['repeat'] = 'until',
+}
+
+local function needs_more(t)
+	if t == '' or t == '<eof>' then return false end
+	if #t <= 2 and string.match(t, '^[%+%-%*%/%^%%%#%<%>%=%~%%%.%,%:]$') then
+		return true
+	elseif t=='and' or t=='or' or t=='not' then
+		return true
+	end
+	return false
+end
+
+local function is_complete_statement(s)
+	local expect, xi = {}, 0
+	local t, i = nil, 1
+	local want_more = false
+	
+	repeat
+		t, i = vsll(s, i)
+		if t then
+			if do_expect[t] then
+				xi = xi + 1
+				expect[xi] = do_expect[t]
+				want_more = false
+			elseif t == expect[xi] then
+				xi = xi - 1
+				want_more = false
+			elseif needs_more(t) then
+				want_more = true
+			elseif t ~= '<eof>' then
+				want_more = false
+			end
+		end
+	until i == 'invalid' or t == '<eof>'
+	
+	return want_more == false and t ~= nil and xi == 0
+end
+-- end Extremely Simple Lua Parser
+
+-- helper function for evaluate: remove leading and trailing white space
+function trim(s)
+	s = string.gsub(s, "^[%s%c]*", '')
+	s = string.gsub(s, "[%s%c]*$", '')
+	return s
+end
+
+local function print_value(val)
+	local function fixval(v)
+		if type(v) == 'string' then
+			return "'"..v.."'"
+		else
+			return tostring(v)
+		end
+	end
+
+	if type(val) == 'table' then
+		local k, v
+		print(tostring(val) .. ' = {')
+		for k, v in pairs(val) do
+			local ks = tostring(k)
+			print("  ["..fixval(k).."] = " .. fixval(v))
+		end
+		print('}')
+	else
+		print(tostring(val))
+	end
+end
+
+-- evaluate user input, if it is a complete statement.
+--
+local function evaluate()
+	text:setcursor('end')
+	local pos = text:index('end')
+	local cmd = text:get(linestart_pos, pos)
+	local doprint = false
+	text:insert('end', "\n")
+
+	cmd = trim(cmd)
+	if string.sub(cmd, 1, 1) == '=' then
+		cmd = "return " .. string.sub(cmd, 2)
+		doprint = true
+	end
+
+	if cmd == 'exit' then ltk.exit() end
+	if is_complete_statement(cmd) then
+		local fn, err = loadstring(cmd)
+		-- in 5.2: load(cmd, nil, 't', ENVIRONMENT)
+		if err then
+			print('Error: ' .. err)
+		else
+			debug.setfenv(fn, ENVIRONMENT) -- not in 5.2
+			local ok, val = pcall(fn)
+			if ok then
+				if val or doprint then print_value(val) end
+			else
+				print('Error: ' .. val)
+				err = val
+			end
+		end
+		history_add {cmd, err}
+		prompt()
+	else
+		local lp = linestart_pos
+		prompt('')
+		linestart_pos = lp
+	end
+	return true
+end
+
+-- menu stuff:
+--
+-- load script, execute it, return to prompt
+--
+local function do_load(fn)
+	local file = fn or ltk.getOpenFile{filetypes={luafiletype, allfiletype}}
+	local fn, err = loadfile(file)
+	-- in 5.2: loadfile(file, 'bt', ENVIRONMENT)
+	if fn ~= nil then
+		debug.setfenv(fn, ENVIRONMENT) -- not in 5.2
+		local ok, err = fn()
+		if ok == nil and err ~= nil then
+			show_error(err)
+		else
+			notify("Skript '"..file.."' loaded.")
+		end
+	else
+		show_error(err)
+	end
+	if not fn then prompt() end
+end
+
+-- save contents of text widget
+--
+local function do_save()
+	local file = ltk.getSaveFile{title = "Save...", filetypes={txtfiletype, allfiletype}}
+	local txt = text:get('0.0', 'end')
+	local f, err = io.open(file, 'w')
+	if f ~= nil then
+		f:write(txt)
+		f:close()
+		notify("Saved as '"..file.."'")
+	else
+		show_error(err)
+	end
+	prompt()
+end
+
+-- save contents of history
+--
+local function do_savehist(goodonly)
+	local wname = goodonly and "Save Successful Commands..." or "Save Commands..."
+	local file = ltk.getSaveFile{title = wname, filetypes={luafiletype, txtfiletype, allfiletype}}
+	local f, err = io.open(file, 'w')
+	if f ~= nil then
+		local _, l
+		for _, l in ipairs(history) do
+			if (goodonly and not l[2]) or not goodonly then
+				f:write(l[1] .. "\n")
+			end
+		end
+		notify("History saved as '"..file.."'")
+		f:close()
+	else
+		show_error(err)
+	end
+end
+
+-- save contents of history, but only commands that did not throw an error.
+--
+local function do_savegoodhist()
+	do_savehist(true)
+end
+
+-- clear history
+--
+local function do_clearhist()
+	local ok = query_yesno("Are you sure you wanto to delete your history?", "Clear History")
+	if ok == 'yes' then
+		history = {}
+		text:delete('0.0', 'end')
+		notify("History cleared.")
+		prompt()
+	end
+end
+
+-- widget menu stuff
+--
+
+-- dump the changed configuration of a widget, everything that is different from
+-- the default value, as a piece of lua script
+--
+local function dump_config(name, widget)
+	local o = widget:options()
+	local _, n, v
+	print()
+	for _, n in ipairs(o) do
+		local c = widget:configure(n)
+		if widget[n] ~= c[2] then print(name..'.'..n..'="'..widget[n]..'"') end
+	end
+	prompt()
+end
+
+-- very simple widget option editor, just fields to change values with, and a
+-- means to dump the result in a way that can be used in a script
+-- 'class' is a readonly field, hence the special treatment.
+--
+local function modify_widget(name)
+	local top = ltk.toplevel()
+	local widget = ENVIRONMENT[name]
+	local t = ltk.widget.type(widget)
+	top:title(name..':'..t)
+	top:resizable(false, false)
+	
+	local r = 0
+	local o = widget:options()
+	local _, n
+	local entries = {}
+	for _, n in ipairs(o) do
+		local v = widget[n]
+		local l = ltk.label(top){ text=n, justify='right' }
+		local e = ltk.entry(top)()
+		e:insert(0, v)
+		if n == 'class' then e.state='disabled' end
+		entries[n] = e
+		
+		l:grid{row=r, column=0}
+		e:grid{row=r, column=1}
+		r = r + 1
+	end
+	
+	local bf = ltk.frame(top)()
+	bf:grid{bf, column=0, columnspan=2}
+	
+	local update_widget = function()
+		local n, e, v
+		for n, e in pairs(entries) do
+			local v = e:get()
+			if n ~= 'class' then
+				widget[n] = v
+			end
+		end
+	end
+	
+	local b0 = ltk.button(bf){text='Update', command=update_widget}
+	local b1 = ltk.button(bf){text='Dump', command=function() dump_config(name, widget) end}
+	local b2 = ltk.button(bf){text='Close', command=function() entries = {} top:destroy() end}
+	
+	top:bind('<Return>', update_widget)
+	top:bind('<Tab>', update_widget)
+	
+	ltk.pack{b0, b1, b2, side='left', expand=true, fill='x'}
+end
+
+-- list widgets in current environment
+--
+local function list_widgets()
+	local n, v
+	local l = {}
+	for n, v in pairs(ENVIRONMENT) do
+		if ltk.iswidget(v) then
+			l[n] = ltk.widget.type(v)
+		end
+	end
+	return l
+end
+
+-- create widget list menu
+--
+local function build_widget_menu(mnu)
+	local l = list_widgets()
+	local n, t
+
+	mnu:delete(0, 'end')
+	for n, t in pairs(l) do
+		mnu:add {'command', label=n..": "..t, command=function() modify_widget(n) end }
+	end
+end
+
+-- text widget position arithmetic and stuff
+--
+
+-- return position as 2 numbers
+--
+function pos2vals(p)
+	if p == nil then return 0, 0 end
+	local v1, v2 = string.match(p, '(%d+)%.(%d+)')
+	return tonumber(v1), tonumber(v2)
+end
+
+-- return position made from 2 numbers
+--
+function pos4vals(r, c)
+	return tostring(r)..'.'..tostring(c)
+end
+
+-- compare two positions, return true if the first position comes before the
+-- second one in the text widget
+--
+local function pos_lt(p1, p2)
+	local p1r, p1c = pos2vals(p1)
+	local p2r, p2c = pos2vals(p2)
+	if p1r < p2r then
+		return true
+	elseif p1r == p2r and p1c < p2c then
+		return true
+	else
+		return false
+	end
+end
+
+-- same as above, but also return true if p1 == p2
+--
+local function pos_le(p1, p2)
+	return p1 == p2 or pos_lt(p1, p2)
+end
+
+-- additional key handling
+--
+-- escape: abort current input
+--
+local function handle_escape()
+	local pos = text:index('end - 1 chars')
+	text:insert(pos, "<Escape>\n")
+	prompt()
+	return true
+end
+
+-- up: go to a previous line in the input history
+--
+local function handle_up()
+	text:delete(linestart_pos, 'end')
+	local l = history_prev()
+	if l then text:insert(linestart_pos, l) end
+	return true
+end
+
+-- down: go to a later line in the input history
+--
+local function handle_down()
+	text:delete(linestart_pos, 'end')
+	local l = history_next()
+	if l then text:insert(linestart_pos, l) end
+	return true
+end
+
+-- left, right, home, end: edit cursor keys
+--
+local function handle_left()
+	local pos = text:getcursor()
+	if pos_le(pos, linestart_pos) then return true end
+end
+
+local function handle_right()
+end
+
+local function handle_home()
+	text:setcursor(linestart_pos)
+	return true
+end
+
+local function handle_end()
+	text:setcursor('end', 'line_end')
+	return true
+end
+
+-- build gui
+local function build_window()
+	local console = ltk.toplevel()
+	console:title("ltksh console")
+	ltk.stdwin:title("ltk")
+
+	local text = ltk.text(console){undo = false}
+	local sb = ltk.scrollbar(console){['orient'] = "vert", command = function(...) text:yview(...) end}
+	text.yscrollcommand = function(y1, y2) sb:set(y1, y2) end
+	sb:pack {side='right', fill='y'}
+	text:pack {expand=true, side='left', fill='both'}
+
+	local mbar = ltk.menu (console) {['type']='menubar'}
+
+	local file = ltk.menu (mbar) {title='File'}
+	file:add {'command', label='Load Script', command=do_load }
+	file:add {'command', label='Save Commands', command=do_savehist }
+	file:add {'command', label='Save Successful Commands', command=do_savegoodhist }
+	file:add {'command', label='Save Console Contents', command=do_save }
+	file:add {'separator'}
+	file:add {'command', label='Quit', command=ltk.exit}
+	mbar:add {'cascade', menu=file, label='File'}
+	
+	local edit = ltk.menu (mbar) {title='Edit'}
+	edit:add {'command', label='Copy', command=function() text:textcopy() end }
+	edit:add {'command', label='Paste', command=function() text:textpaste() end }
+	edit:add {'command', label='Clear History', command=do_clearhist }
+	mbar:add {'cascade', menu=edit, label='Edit'}
+
+	local widgets
+	widgets = ltk.menu (mbar) {title='Widgets', postcommand=function() build_widget_menu(widgets) end}
+	mbar:add {'cascade', menu=widgets, label='Widgets'}
+
+	console.menu = mbar
+
+	console:bind('<Destroy>', ltk.exit)
+
+	text:bind('<Return>', evaluate)
+	text:bind('<Up>', handle_up)
+	text:bind('<Down>', handle_down)
+	text:bind('<Left>', handle_left)
+	text:bind('<Right>', handle_right)
+	text:bind('<BackSpace>', handle_left)
+	text:bind('<Home>', handle_home)
+	text:bind('<Control-a>', handle_home)
+	text:bind('<End>', handle_end)
+	text:bind('<Control-e>', handle_end)
+	text:bind('<Escape>', handle_escape)
+
+	local last_pos
+	text:bind('<ButtonPress>', function() last_pos = text:index('insert') end)
+	text:bind('<ButtonRelease>', function() text:setcursor(last_pos) return true end)
+
+	text:insert('0.0', 		"Welcome to ltksh version "..VERSION.."\n")
+	text:insert('insert',	"ltk is available in the ltk table.\n")
+
+	return console, text
+end
+
+-- check command line args
+local nargs = #arg
+local init = nil
+if nargs == 2 and arg[1] == "-i" then
+	init = arg[2]
+elseif nargs ~= 0 then
+	debug("Usage: " .. arg[0] .. " [-i initscript]")
+	ltk.exit()
+end
+
+-- initialize gui
+ltk.update() -- open '.' first
+console, text = build_window()
+
+-- load init skript if needed
+if init then
+	do_load(init)
+end
+
+-- and go :)
+prompt()
+
+ltk.mainloop()
