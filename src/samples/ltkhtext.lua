@@ -14,6 +14,9 @@
 
 ltk = require "ltk"
 
+-- Lua 5.3 compat...
+local unpack = unpack or table.unpack
+
 -- everything between [brackets] is a link, using what's betwen the brackets
 -- as an index into this array.
 texts = {

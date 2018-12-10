@@ -13,7 +13,7 @@
 
 ltk = require "ltk"
 
-img = ltk.image.create{'photo', width=256, height=256}
+img = ltk.image.create{'samples/photo', width=256, height=256}
 
 function drawimg()
 	local drawfn
