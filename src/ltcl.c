@@ -7,7 +7,7 @@
  */
 
 #define VERSION 0.9
-#define REVISION 3
+#define REVISION 5
 
 #include <stdio.h>	/* for NULL */
 #include <string.h>	/* for strlen() */
@@ -39,6 +39,16 @@
 #define luaL_optint   luaL_optinteger
 
 #define lua_equal(L,x,y) lua_compare(L,x,y,LUA_OPEQ)
+
+#define luaL_register(L,nm,tb) ((nm == NULL) ? NULL : lua_newtable(L), luaL_setfuncs(L, tb, 0))
+
+#elif LUA_VERSION_NUM == 504
+
+#define luaL_reg      luaL_Reg
+
+#define luaL_checkint luaL_checkinteger
+
+#define luaL_optint   luaL_optinteger
 
 #define luaL_register(L,nm,tb) ((nm == NULL) ? NULL : lua_newtable(L), luaL_setfuncs(L, tb, 0))
 
